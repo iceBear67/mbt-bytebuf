@@ -1,0 +1,9 @@
+{
+  "name": "iceBear67/bytebuf",
+  "version": "0.1.0",
+  "readme": "README.md",
+  "repository": "https://github.com/iceBear67/mbt-bytebuf",
+  "license": "Apache-2.0",
+  "keywords": ["bytebuf", "buffer", "bytes", "binary", "data"],
+  "description": "A byte buffer for moonbit, supports LE/BE r/w of integers and floats."
+}
