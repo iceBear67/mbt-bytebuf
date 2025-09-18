@@ -11,6 +11,10 @@ impl ByteBuf for HeapByteBuf with len(self) -> Int {
   return self.writerIndex - self.readerIndex
 }
 
+impl ByteBuf for HeapByteBuf with position(self) -> Int {
+  self.readerIndex
+}
+
 ///|
 impl ByteBuf for HeapByteBuf with discard_read_bytes(self) -> Unit {
   if self.readerIndex == 0 {
@@ -36,8 +40,9 @@ impl ByteBuf for HeapByteBuf with clear(self) -> Unit {
 }
 
 ///|
-impl ByteBuf for HeapByteBuf with mark(self) -> Unit {
+impl ByteBuf for HeapByteBuf with mark(self) -> Int {
   self.marker = self.readerIndex
+  self.marker
 }
 
 ///|

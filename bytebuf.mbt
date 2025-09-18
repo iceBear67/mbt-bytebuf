@@ -62,19 +62,21 @@ pub(open) trait ByteBuf: ByteReader + ByteWriter {
   ///| This will reset the reader and writer index.
   /// The content will no longer be accessible.
   clear(Self) -> Unit
-  ///| Mark the current reader index.
+  ///| Mark and return the current reader index.
   /// You can reset to this index later.
-  mark(Self) -> Unit
+  /// The returned index may not guarantee the absolute position in the byte stream.
+  /// and the position should be invalidated once #reset is used. 
+  mark(Self) -> Int
   ///| Reset the reader index to the previously marked index.
   /// If no index was marked, this will reset the reader index to 0.
   reset(Self) -> Unit
-
+  ///| Get the current readerIndex.
+  position(Self) -> Int
   ///| Discard the read bytes and move the unread bytes to the beginning.
   /// This will reset the reader index to 0 and adjust the writer index accordingly.
   /// This is useful when you want to free up space in the buffer. It creates a new underlying storage and copies the content.
   /// Marks will lose if they are earlier than the reader index.
   discard_read_bytes(Self) -> Unit
-
   ///| Shrink the capacity of the buffer to fit the current content.
   /// This will not affect the reader and writer indices.
   /// This method creates a new underlying storage and copies the content.

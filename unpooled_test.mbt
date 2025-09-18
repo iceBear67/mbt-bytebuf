@@ -46,16 +46,17 @@ fn test_bytebuf_op(buf : &ByteBuf) -> Unit raise {
   assert_true(buf.is_empty(), msg="buf should be empty after read_byte")
   buf.write_byte(1)
   buf.write_byte(2)
-  buf.mark()
+  let markPos = buf.mark()
   buf.write_byte(3)
   assert_eq(buf.read_byte(), Some(1))
+  assert_eq(buf.position() - markPos, 1)
   buf.reset()
   assert_eq(buf.read_byte(), Some(1))
   assert_eq(buf.read_byte(), Some(2))
   assert_true(buf.len() == 1)
 
   // test discard and shrink
-  buf.mark()
+  let _ = buf.mark()
   let expect = buf.read_byte()
   buf.reset()
   buf.discard_read_bytes()
@@ -82,7 +83,7 @@ fn test_bytebuf_op(buf : &ByteBuf) -> Unit raise {
 
   //test discard but the mark is later than readerIndex
   assert_eq(buf.read_bytes(3), Some(Bytes::from_array([1, 2, 3])))
-  buf.mark()
+  let _ = buf.mark()
   buf.discard_read_bytes()
   buf.reset()
   assert_eq(buf.read_bytes(3), Some(Bytes::from_array([4, 5, 6])))
