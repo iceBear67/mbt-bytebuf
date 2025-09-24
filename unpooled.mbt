@@ -3,7 +3,8 @@ priv struct HeapByteBuf {
   mut readerIndex : Int
   mut writerIndex : Int
   mut marker : Int
-  mut bytes : FixedArray[Byte]
+  startIndex: Int
+  bytes : Ref[FixedArray[Byte]]
 }
 
 ///|
@@ -21,10 +22,11 @@ impl ByteBuf for HeapByteBuf with discard_read_bytes(self) -> Unit {
   if self.readerIndex == 0 {
     return
   }
-  self.bytes.blit_to(
-    self.bytes,
-    len=self.bytes.length() - self.readerIndex,
-    src_offset=self.readerIndex,
+  self.bytes.val.blit_to(
+    self.bytes.val,
+    len=self.bytes.val.length() - self.readerIndex,
+    src_offset=self.startIndex + self.readerIndex,
+    dst_offset=self.startIndex,
   )
   self.writerIndex -= self.readerIndex
   self.marker = 0 // marker is always smaller than readerIndex.
@@ -33,10 +35,11 @@ impl ByteBuf for HeapByteBuf with discard_read_bytes(self) -> Unit {
 
 ///|
 impl ByteBuf for HeapByteBuf with shrink(self) -> Unit {
-  self.bytes.blit_to(
-    self.bytes,
+  self.bytes.val.blit_to(
+    self.bytes.val,
     len=self.writerIndex,
-    src_offset=0,
+    src_offset=self.startIndex,
+    dst_offset=self.startIndex,
   )
 }
 
@@ -45,7 +48,6 @@ impl ByteBuf for HeapByteBuf with clear(self) -> Unit {
   self.readerIndex = 0
   self.writerIndex = 0
   self.marker = 0
-  self.bytes = FixedArray::make(0, 0)
 }
 
 ///|
@@ -61,28 +63,45 @@ impl ByteBuf for HeapByteBuf with reset(self) -> Unit {
 
 ///|
 impl ByteBuf for HeapByteBuf with to_bytes(self) -> Bytes {
-  return Bytes::makei(self.len(), i => self.bytes[self.readerIndex + i])
+  return Bytes::makei(self.len(), i => self.bytes.val[self.startIndex + self.readerIndex + i])
+}
+
+impl ByteBuf for HeapByteBuf with slice(
+  self,
+  start : Int,
+  length : Int,
+) -> &ByteBuf {
+  guard start >= 0 && start <= self.len()
+  guard length >= 0 && start + length <= self.len()
+  let new_buf = HeapByteBuf::{
+    readerIndex: 0,
+    writerIndex: length,
+    marker: 0,
+    startIndex: start,
+    bytes: self.bytes,
+  }
+  return new_buf
 }
 
 ///|
 impl ByteWriter for HeapByteBuf with capacity(self) -> Int? {
-  return Some(self.bytes.length() - self.writerIndex)
+  return Some(self.bytes.val.length() - self.writerIndex - self.startIndex)
 }
 
 ///|
 impl ByteWriter for HeapByteBuf with write_bytes(self, data : Bytes) -> Unit {
   if self.capacity().unwrap() < data.length() {
-    let new_capacity = self.bytes.length() +
+    let new_capacity = self.bytes.val.length() +
       (data.length() - self.capacity().unwrap())
-    self.bytes = FixedArray::makei(new_capacity, i => if i < self.writerIndex {
-      self.bytes[i]
+    self.bytes.val = FixedArray::makei(new_capacity, i => if i < self.startIndex + self.writerIndex {
+      self.bytes.val[i]
     } else {
-      data[i - self.writerIndex]
+      data[i - self.writerIndex - self.startIndex]
     })
     self.writerIndex += data.length()
   } else {
     for i, b in data.to_array() {
-      self.bytes[self.writerIndex + i] = b
+      self.bytes.val[self.startIndex + self.writerIndex + i] = b
     }
     self.writerIndex += data.length()
   }
@@ -103,10 +122,8 @@ impl ByteReader for HeapByteBuf with read_bytes(self, amount : Int) -> Bytes? {
   if self.remaining() < amount {
     return None
   }
-  let start = self.readerIndex
-  let end = start + amount
   self.readerIndex += amount
-  return Some(Bytes::makei(end - start, i => self.bytes[start + i]))
+  return Some(Bytes::makei(amount, i => self.bytes.val[self.startIndex + self.readerIndex - amount + i]))
 }
 
 ///|
@@ -115,7 +132,8 @@ pub fn make_unpooled(suggest_capacity : Int) -> &ByteBuf {
     readerIndex: 0,
     writerIndex: 0,
     marker: 0,
-    bytes: FixedArray::make(suggest_capacity, 0),
+    startIndex: 0,
+    bytes: @ref.new(FixedArray::make(suggest_capacity, 0)),
   }
 }
 
@@ -125,7 +143,8 @@ pub fn make_unpooled_from_bytes(data : Bytes) -> &ByteBuf {
     readerIndex: 0,
     writerIndex: data.length(),
     marker: 0,
-    bytes: FixedArray::makei(data.length(), i => data[i]),
+    startIndex: 0,
+    bytes: @ref.new(FixedArray::makei(data.length(), i => data[i])),
   }
 }
 
@@ -135,6 +154,7 @@ pub fn make_unpooled_from_array(data : Array[Byte]) -> &ByteBuf {
     readerIndex: 0,
     writerIndex: data.length(),
     marker: 0,
-    bytes: FixedArray::from_array(data),
+    startIndex: 0,
+    bytes: @ref.new(FixedArray::from_array(data)),
   }
 }
