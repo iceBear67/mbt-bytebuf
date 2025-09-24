@@ -61,9 +61,7 @@ impl ByteBuf for HeapByteBuf with reset(self) -> Unit {
 
 ///|
 impl ByteBuf for HeapByteBuf with to_bytes(self) -> Bytes {
-  return Bytes::from_array(
-    self.bytes[self.readerIndex:self.writerIndex].to_array(),
-  )
+  return Bytes::makei(self.len(), i => self.bytes[self.readerIndex + i])
 }
 
 ///|
@@ -108,7 +106,7 @@ impl ByteReader for HeapByteBuf with read_bytes(self, amount : Int) -> Bytes? {
   let start = self.readerIndex
   let end = start + amount
   self.readerIndex += amount
-  return Some(Bytes::from_array(self.bytes[start:end].to_array()))
+  return Some(Bytes::makei(end - start, i => self.bytes[start + i]))
 }
 
 ///|
