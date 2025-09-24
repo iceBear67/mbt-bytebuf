@@ -93,6 +93,22 @@ fn test_bytebuf_op(buf : &ByteBuf) -> Unit raise {
   return
 }
 
+test "test slice" {
+  let buf = @bytebuf.make_unpooled_from_array([1, 2, 3, 4, 5])
+  assert_eq(buf.to_bytes(), Bytes::from_array([1, 2, 3, 4, 5]))
+
+  let slice = buf.slice(1, 3)
+  assert_eq(slice.to_bytes(), Bytes::from_array([2, 3, 4]))
+  assert_eq(slice.len(), 3)
+  assert_eq(slice.read_byte(), Some(2))
+  assert_eq(slice.len(), 2)
+
+  slice.write_bytes([6, 7])
+  assert_eq(slice.to_bytes(), Bytes::from_array([3, 4, 6, 7]))
+  assert_eq(buf.to_bytes(), Bytes::from_array([1, 2, 3, 4, 6]))
+  assert_eq(slice.read_bytes(2), Some(Bytes::from_array([3, 4])))
+}
+
 
 test "example" {
   let buf = @bytebuf.make_unpooled(10)

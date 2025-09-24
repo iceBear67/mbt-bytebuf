@@ -81,4 +81,8 @@ pub(open) trait ByteBuf: ByteReader + ByteWriter {
   /// This will not affect the reader and writer indices.
   /// This method creates a new underlying storage and copies the content.
   shrink(Self) -> Unit 
+  ///| Create a slice of the buffer from start to end.
+  /// The new buffer will have its own reader and writer indices.
+  /// The content will be shared between the two buffers.
+  slice(Self, start : Int, length : Int) -> &ByteBuf
 }
