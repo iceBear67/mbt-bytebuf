@@ -87,29 +87,27 @@ fn test_bytebuf_op(buf : &ByteBuf) -> Unit raise {
   buf.discard_read_bytes()
   buf.reset()
   assert_eq(buf.read_bytes(3), Some(Bytes::from_array([4, 5, 6])))
-
   buf.clear()
   buf.discard_read_bytes() // should do nothing
   return
 }
 
+///|
 test "test slice" {
   let buf = @bytebuf.make_unpooled_from_array([1, 2, 3, 4, 5])
   assert_eq(buf.to_bytes(), Bytes::from_array([1, 2, 3, 4, 5]))
-
   let slice = buf.slice(1, 3)
   assert_eq(slice.to_bytes(), Bytes::from_array([2, 3, 4]))
   assert_eq(slice.len(), 3)
   assert_eq(slice.read_byte(), Some(2))
   assert_eq(slice.len(), 2)
-
   slice.write_bytes([6, 7])
   assert_eq(slice.to_bytes(), Bytes::from_array([3, 4, 6, 7]))
   assert_eq(buf.to_bytes(), Bytes::from_array([1, 2, 3, 4, 6]))
   assert_eq(slice.read_bytes(2), Some(Bytes::from_array([3, 4])))
 }
 
-
+///|
 test "example" {
   let buf = @bytebuf.make_unpooled(10)
   buf.write_int_le(0x01020304)
@@ -117,4 +115,17 @@ test "example" {
   assert_eq(buf.len(), 8)
   assert_eq(buf.read_int_le(), Some(0x01020304))
   assert_eq(buf.read_int(), Some(0x05060708))
+}
+
+///|
+test "transfer to" {
+  let buf = @bytebuf.make_unpooled_from_array([1, 2, 3, 4, 5, 6, 7, 8])
+  let buf_to_transfer = @bytebuf.make_unpooled(0)
+  let transferred = buf.transfer_to(buf_to_transfer,10)
+  assert_eq(transferred, 8)
+  let expect =
+    #|Some(b"\x01\x02\x03\x04\x05\x06\x07\x08")
+  inspect(buf_to_transfer.read_bytes(8), content=expect)
+  let i = buf.transfer_to(buf_to_transfer, 100)
+  assert_eq(i, -1)  
 }

@@ -301,6 +301,40 @@ impl ByteWriter with write_double(self, d) -> Unit {
 }
 
 ///|
+impl ByteWriter with write_array(self, arr, off, len) -> Unit {
+  guard arr.length() >= off + len
+  for i = 0; i < len; i = i + 1 {
+    self.write_byte(arr[off + i])
+  }
+}
+
+///|
+impl ByteReader with read_bytes_most(self, len) -> Bytes {
+  if !self.has_remaining() {
+    return Bytes::of([])
+  }
+  let buffer : Array[Byte] = Array::new(capacity=len)
+  for i = 0; i < len; i = i + 1 {
+    guard self.read_byte() is Some(byte) else { break }
+    buffer.push(byte)
+  }
+  Bytes::from_array(buffer)
+}
+
+///|
+impl ByteReader with read(self, dst, off, len) -> Int {
+  guard dst.length() >= off + len else {
+    return -1
+  }
+  for i = 0; i < len; i = i + 1 {
+    guard self.read_byte() is Some(byte) else { return i }
+    dst[off + i] = byte
+  }else {
+    i
+  }
+}
+
+///|
 impl ByteBuf with is_empty(self) -> Bool {
   self.len() == 0
 }

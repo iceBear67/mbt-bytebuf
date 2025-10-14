@@ -226,3 +226,155 @@ test "test default read/write operations" {
   )
   buf.clear()
 }
+
+
+///|
+test "test write_array method" {
+  let buf = @bytebuf.make_unpooled(10)
+  let test_array : FixedArray[Byte] = [1, 2, 3, 4, 5, 6, 7, 8]
+  
+  // Test normal write_array
+  buf.write_array(test_array, 0, 4)
+  assert_eq(buf.to_bytes(), [1, 2, 3, 4], msg="write_array failed with offset 0, len 4")
+  buf.clear()
+  
+  // Test write_array with offset
+  buf.write_array(test_array, 2, 3)
+  assert_eq(buf.to_bytes(), [3, 4, 5], msg="write_array failed with offset 2, len 3")
+  buf.clear()
+  
+  // Test write_array with full array (guard should allow this: 8 > 0 + 8 is false, so it passes)
+  buf.write_array(test_array, 0, 8)
+  assert_eq(buf.to_bytes(), [1, 2, 3, 4, 5, 6, 7, 8], msg="write_array failed with full array")
+  buf.clear()
+  
+  // Test write_array with single byte
+  buf.write_array(test_array, 5, 1)
+  assert_eq(buf.to_bytes(), [6], msg="write_array failed with single byte")
+  buf.clear()
+}
+
+///|
+test "test read_bytes_most method" {
+  let buf = @bytebuf.make_unpooled(10)
+  let test_data : FixedArray[Byte] = [10, 20, 30, 40, 50]
+  
+  // Write test data
+  buf.write_bytes(Bytes::from_fixedarray(test_data))
+  buf.reset() // Reset to read from beginning
+  
+  // Test read_bytes_most with exact length
+  let result1 = buf.read_bytes_most(3)
+  assert_eq(result1, [10, 20, 30], msg="read_bytes_most failed with exact length")
+  
+  // Test read_bytes_most with more than available
+  let result2 = buf.read_bytes_most(5)
+  assert_eq(result2, [40, 50], msg="read_bytes_most failed with more than available")
+  
+  // Test read_bytes_most when empty
+  let result3 = buf.read_bytes_most(3)
+  assert_eq(result3, [], msg="read_bytes_most failed when empty")
+  
+  // Test read_bytes_most with zero length
+  buf.reset()
+  let result4 = buf.read_bytes_most(0)
+  assert_eq(result4, [], msg="read_bytes_most failed with zero length")
+  
+  // Test read_bytes_most with large request
+  buf.reset()
+  let result5 = buf.read_bytes_most(100)
+  assert_eq(result5, [10, 20, 30, 40, 50], msg="read_bytes_most failed with large request")
+}
+
+///|
+test "test read method" {
+  let buf = @bytebuf.make_unpooled(10)
+  let test_data : FixedArray[Byte] = [1, 2, 3, 4, 5, 6]
+  let dst : FixedArray[Byte] = FixedArray::make(10, 0)
+  
+  // Write test data
+  buf.write_bytes(Bytes::from_fixedarray(test_data))
+  buf.reset() // Reset to read from beginning
+  
+  // Test read with exact length
+  let read1 = buf.read(dst, 0, 3)
+  assert_eq(read1, 3, msg="read failed to return correct count")
+  assert_eq(dst[0], 1, msg="read failed to copy first byte")
+  assert_eq(dst[1], 2, msg="read failed to copy second byte")
+  assert_eq(dst[2], 3, msg="read failed to copy third byte")
+  
+  // Test read with offset in destination - should read remaining bytes [4, 5, 6]
+  let read2 = buf.read(dst, 3, 3)
+  assert_eq(read2, 3, msg="read failed with destination offset")
+  assert_eq(dst[3], 4, msg="read failed to copy fourth byte")
+  assert_eq(dst[4], 5, msg="read failed to copy fifth byte")
+  assert_eq(dst[5], 6, msg="read failed to copy sixth byte")
+  
+  // Test read when no more data - should return 0 since we're at EOF
+  let read3 = buf.read(dst, 6, 3)
+  assert_eq(read3, 0, msg="read failed when no more data available")
+  
+  // Test read when completely empty - new buffer
+  let buf2 = @bytebuf.make_unpooled(5)
+  let dst2 : FixedArray[Byte] = FixedArray::make(5, 0)
+  let read4 = buf2.read(dst2, 0, 2)
+  assert_eq(read4, 0, msg="read failed when completely empty")
+  
+  // Test read with zero length
+  buf.reset()
+  let read5 = buf.read(dst, 0, 0)
+  assert_eq(read5, 0, msg="read failed with zero length")
+  // Test read with large request - should read all available data
+  buf.reset()
+  let read6 = buf.read(dst, 0, 100)
+  assert_eq(read6, -1)
+}
+
+///|
+test "test write_array edge cases" {
+  let buf = @bytebuf.make_unpooled(10)
+  let test_array : FixedArray[Byte] = [1, 2, 3]
+  
+  // Test write_array with offset at boundary (2 + 1 = 3, which is not > 3)
+  buf.write_array(test_array, 2, 1)
+  assert_eq(buf.to_bytes(), [3], msg="write_array failed at boundary")
+  buf.clear()
+  
+  // Test write_array with len at boundary (1 + 2 = 3, which is not > 3)
+  buf.write_array(test_array, 1, 2)
+  assert_eq(buf.to_bytes(), [2, 3], msg="write_array failed with len at boundary")
+  buf.clear()
+}
+
+///|
+test "test read_bytes_most edge cases" {
+  let buf = @bytebuf.make_unpooled(10)
+  
+  // Test with empty buffer from start
+  let result = buf.read_bytes_most(5)
+  assert_eq(result, [], msg="read_bytes_most failed with empty buffer")
+  
+  // Test single byte buffer
+  buf.write_byte(42)
+  buf.reset()
+  let result2 = buf.read_bytes_most(1)
+  assert_eq(result2, [42], msg="read_bytes_most failed with single byte")
+}
+
+///|
+test "test read edge cases" {
+  let buf = @bytebuf.make_unpooled(10)
+  let dst : FixedArray[Byte] = FixedArray::make(5, 0)
+  
+  // Test with empty buffer
+  let read1 = buf.read(dst, 0, 5)
+  assert_eq(read1, 0, msg="read failed with empty buffer")
+  
+  // Test with destination offset - ensure we don't go out of bounds
+  buf.write_bytes(Bytes::from_fixedarray([1, 2]))
+  buf.reset()
+  let read2 = buf.read(dst, 3, 2)  // Only 2 bytes available, destination has space
+  assert_eq(read2, 2, msg="read failed with destination offset")
+  assert_eq(dst[3], 1, msg="read failed to copy first byte at offset")
+  assert_eq(dst[4], 2, msg="read failed to copy second byte at offset")
+}

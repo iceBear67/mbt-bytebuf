@@ -132,13 +132,13 @@ impl ByteReader for HeapByteBuf with read_bytes(self, amount : Int) -> Bytes? {
 }
 
 ///|
-impl ByteBuf for HeapByteBuf with transferTo(self, another, len, increaseReader) -> Int {
+impl ByteBuf for HeapByteBuf with transfer_to(self, another, len) -> Int {
   if self.is_empty() {
     return -1
   }
   let amount = @cmp.minimum(len, self.len())
   for i = 0; i < amount; i = i + 1 {
-    another.write_byte(self.read_byte().unwrap())
+      another.write_byte(self.read_byte().unwrap())
   }
   return amount
 }

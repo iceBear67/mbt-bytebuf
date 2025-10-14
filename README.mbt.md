@@ -13,5 +13,5 @@ test "example" {
 }
 ```
 
-Code coverage is 100%, you can rely on this library safely.
+Codes are fully covered by tests, you can rely on this library safely.
 

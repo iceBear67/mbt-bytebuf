@@ -6,7 +6,13 @@
 pub(open) trait ByteReader {
   remaining(Self) -> Int
   has_remaining(Self) -> Bool = _
+  /// This method returns None if we cannot read exactly %len bytes.
   read_bytes(Self, len : Int) -> Bytes?
+  /// This method returns an empty Bytes if had no remaining bytes. 
+  /// Otherwise, try to read bytes as much as possible but not greater than len
+  read_bytes_most(Self, len: Int) -> Bytes = _
+  /// Returns the number of bytes read. -1 if cannot read to dst
+  read(Self, dst: FixedArray[Byte], off: Int, len: Int) -> Int = _
   read_int(Self) -> Int? = _
   read_int_le(Self) -> Int? = _
   read_int16(Self) -> Int16? = _
@@ -35,6 +41,8 @@ pub(open) trait ByteWriter {
   ///| Write some bytes into the destination.
   /// The buffer will increase its capacity if needed.
   write_bytes(Self, Bytes) -> Unit
+  ///| Write bytes from a fixed array.
+  write_array(Self, FixedArray[Byte], off: Int, len: Int) -> Unit = _
   write_byte(Self, Byte) -> Unit
   write_int(Self, Int) -> Unit = _
   write_int16(Self, Int16) -> Unit = _
@@ -91,7 +99,7 @@ pub(open) trait ByteBuf: ByteReader + ByteWriter {
   /// length: should be lower than or equals to the current writerIndex.
   slice(Self, start : Int, length : Int) -> &ByteBuf
   /// Make an attempt to copy an amount of bytes to the destinated bytebuf.
-  /// This also increases reader index when @param increaseReader has not been set.
+  /// This also increases reader index.
   /// Returns actually copied bytes. -1 if *this* bytebuf is at EOF
-  transferTo(Self, another: &ByteBuf, length: Int, increaseReader: Bool?) -> Int
+  transfer_to(Self, dst: &ByteBuf, length: Int) -> Int
 }
