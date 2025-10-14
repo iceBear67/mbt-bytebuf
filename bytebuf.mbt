@@ -54,7 +54,9 @@ pub(open) trait ByteWriter {
   write_double_le(Self, Double) -> Unit = _
 }
 
-///|
+///| A bytebuf has a known size and growing capacity as needed. It guarantees random accesses and seeking is always available, 
+/// and may accept advice from discard_read_bytes() and shrink(). It can be backed by alternatives to byte arrays, like Arena or 
+/// multiple bytebufs that act as a composition.
 pub(open) trait ByteBuf: ByteReader + ByteWriter {
   len(Self) -> Int
   is_empty(Self) -> Bool = _
@@ -84,5 +86,12 @@ pub(open) trait ByteBuf: ByteReader + ByteWriter {
   ///| Create a slice of the buffer from start to end.
   /// The new buffer will have its own reader and writer indices.
   /// The content will be shared between the two buffers.
+  /// Params:
+  /// start: should be greater than or equals to the current readerIndex
+  /// length: should be lower than or equals to the current writerIndex.
   slice(Self, start : Int, length : Int) -> &ByteBuf
+  /// Make an attempt to copy an amount of bytes to the destinated bytebuf.
+  /// This also increases reader index when @param increaseReader has not been set.
+  /// Returns actually copied bytes. -1 if *this* bytebuf is at EOF
+  transferTo(Self, another: &ByteBuf, length: Int, increaseReader: Bool?) -> Int
 }

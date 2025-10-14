@@ -3,7 +3,7 @@ priv struct HeapByteBuf {
   mut readerIndex : Int
   mut writerIndex : Int
   mut marker : Int
-  startIndex: Int
+  startIndex : Int
   bytes : Ref[FixedArray[Byte]]
 }
 
@@ -63,14 +63,13 @@ impl ByteBuf for HeapByteBuf with reset(self) -> Unit {
 
 ///|
 impl ByteBuf for HeapByteBuf with to_bytes(self) -> Bytes {
-  return Bytes::makei(self.len(), i => self.bytes.val[self.startIndex + self.readerIndex + i])
+  return Bytes::makei(self.len(), i => self.bytes.val[self.startIndex +
+    self.readerIndex +
+    i])
 }
 
-impl ByteBuf for HeapByteBuf with slice(
-  self,
-  start : Int,
-  length : Int,
-) -> &ByteBuf {
+///|
+impl ByteBuf for HeapByteBuf with slice(self, start : Int, length : Int) -> &ByteBuf {
   guard start >= 0 && start <= self.len()
   guard length >= 0 && start + length <= self.len()
   let new_buf = HeapByteBuf::{
@@ -93,7 +92,8 @@ impl ByteWriter for HeapByteBuf with write_bytes(self, data : Bytes) -> Unit {
   if self.capacity().unwrap() < data.length() {
     let new_capacity = self.bytes.val.length() +
       (data.length() - self.capacity().unwrap())
-    self.bytes.val = FixedArray::makei(new_capacity, i => if i < self.startIndex + self.writerIndex {
+    self.bytes.val = FixedArray::makei(new_capacity, i => if i <
+      self.startIndex + self.writerIndex {
       self.bytes.val[i]
     } else {
       data[i - self.writerIndex - self.startIndex]
@@ -123,7 +123,24 @@ impl ByteReader for HeapByteBuf with read_bytes(self, amount : Int) -> Bytes? {
     return None
   }
   self.readerIndex += amount
-  return Some(Bytes::makei(amount, i => self.bytes.val[self.startIndex + self.readerIndex - amount + i]))
+  return Some(
+    Bytes::makei(amount, i => self.bytes.val[self.startIndex +
+      self.readerIndex -
+      amount +
+      i]),
+  )
+}
+
+///|
+impl ByteBuf for HeapByteBuf with transferTo(self, another, len, increaseReader) -> Int {
+  if self.is_empty() {
+    return -1
+  }
+  let amount = @cmp.minimum(len, self.len())
+  for i = 0; i < amount; i = i + 1 {
+    another.write_byte(self.read_byte().unwrap())
+  }
+  return amount
 }
 
 ///|
