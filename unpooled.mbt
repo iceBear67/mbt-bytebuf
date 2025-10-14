@@ -83,15 +83,15 @@ impl ByteBuf for HeapByteBuf with slice(self, start : Int, length : Int) -> &Byt
 }
 
 ///|
-impl ByteWriter for HeapByteBuf with capacity(self) -> Int? {
-  return Some(self.bytes.val.length() - self.writerIndex - self.startIndex)
+impl ByteWriter for HeapByteBuf with capacity(self) -> Int {
+  return self.bytes.val.length() - self.writerIndex - self.startIndex
 }
 
 ///|
 impl ByteWriter for HeapByteBuf with write_bytes(self, data : Bytes) -> Unit {
-  if self.capacity().unwrap() < data.length() {
+  if self.capacity() < data.length() {
     let new_capacity = self.bytes.val.length() +
-      (data.length() - self.capacity().unwrap())
+      (data.length() - self.capacity())
     self.bytes.val = FixedArray::makei(new_capacity, i => if i <
       self.startIndex + self.writerIndex {
       self.bytes.val[i]

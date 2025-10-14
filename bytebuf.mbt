@@ -35,8 +35,7 @@ pub(open) trait ByteReader {
 ///|
 pub(open) trait ByteWriter {
   ///| Remaining spaces we can write without resizing the underlying structure.
-  /// This may return None if capacity is infinity.
-  capacity(Self) -> Int?
+  capacity(Self) -> Int
 
   ///| Write some bytes into the destination.
   /// The buffer will increase its capacity if needed.
